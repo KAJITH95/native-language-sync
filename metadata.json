@@ -1,0 +1,6 @@
+{
+  "name": "Native Language Sync",
+  "description": "Translate native text to polished English and convert to any country's native languages",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

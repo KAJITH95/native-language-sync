@@ -28,3 +28,7 @@ Future changes committed to `cloudflare/` on `main` automatically rebuild/deploy
 `npm run build`
 
 `npx wrangler dev` — local Worker (requires private `.dev.vars` values not committed to Git).
+
+## Automatic deployment smoke check
+
+Connected GitHub repository deployments should build from `main` with root directory `cloudflare`. This small documentation update is a safe commit to trigger and verify Cloudflare Workers Builds. Confirm success in Cloudflare's **Deployments / Builds** dashboard before assuming production was updated.

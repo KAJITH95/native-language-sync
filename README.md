@@ -32,3 +32,9 @@ npm run build
 ```
 
 Privacy/security: don't expose any API keys or passwords in GitHub, screenshots, or chat.
+
+## Complete project guide (PDF)
+
+The complete 15-page architecture, integrations, third-party links, setup, security, daily use, limitations and troubleshooting guide is available at [Native Language Sync - Complete Technical & User Guide](docs/Native_Language_Sync_Complete_Technical_User_Guide.pdf) (source snapshot: `6bbbc77d8013`).
+
+The runtime uses Groq + Cloudflare Workers. The PDF contains no production API secrets or passwords.

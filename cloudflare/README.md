@@ -32,3 +32,9 @@ Future changes committed to `cloudflare/` on `main` automatically rebuild/deploy
 ## Automatic deployment smoke check
 
 Connected GitHub repository deployments should build from `main` with root directory `cloudflare`. This small documentation update is a safe commit to trigger and verify Cloudflare Workers Builds. Confirm success in Cloudflare's **Deployments / Builds** dashboard before assuming production was updated.
+
+## Complete project guide (PDF)
+
+The complete 15-page architecture, integrations, third-party links, setup, security, daily use, limitations and troubleshooting guide is available at [Native Language Sync - Complete Technical & User Guide](../docs/Native_Language_Sync_Complete_Technical_User_Guide.pdf) (source snapshot: `6bbbc77d8013`).
+
+The runtime uses Groq + Cloudflare Workers. The PDF contains no production API secrets or passwords.

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" fill="none">
+  <defs>
+    <radialGradient id="mist" cx="42%" cy="24%" r="75%"><stop stop-color="#f0eafb"/><stop offset=".55" stop-color="#eff7f2"/><stop offset="1" stop-color="#fcf9f1"/></radialGradient>
+    <symbol id="sakura" viewBox="-55 -60 110 120">
+      <g stroke="#ba9ac4" stroke-width="1.6" fill="#ead3df">
+        <path d="M0 -5C-20 -31 -12 -46 0 -49C15 -46 23 -27 0 -5Z"/>
+        <path d="M0 -5C-20 -31 -12 -46 0 -49C15 -46 23 -27 0 -5Z" transform="rotate(72)"/>
+        <path d="M0 -5C-20 -31 -12 -46 0 -49C15 -46 23 -27 0 -5Z" transform="rotate(144)"/>
+        <path d="M0 -5C-20 -31 -12 -46 0 -49C15 -46 23 -27 0 -5Z" transform="rotate(216)"/>
+        <path d="M0 -5C-20 -31 -12 -46 0 -49C15 -46 23 -27 0 -5Z" transform="rotate(288)"/>
+      </g><circle r="7" fill="#d6af7a"/><circle r="2.5" fill="#f7e6ba"/>
+    </symbol>
+    <symbol id="lotus" viewBox="-90 -90 180 190">
+      <g stroke="#baa0d0" stroke-width="1.9" fill="#e4d6f5">
+        <path d="M0 31C-17 10 -15 -23 0 -65C15 -23 17 10 0 31Z"/>
+        <path d="M0 34C-39 12 -49 -25 -42 -48C-12 -24 -1 1 0 34Z"/>
+        <path d="M0 34C39 12 49 -25 42 -48C12 -24 1 1 0 34Z"/>
+        <path d="M0 38C-48 30 -73 3 -72 -19C-40 -17 -10 10 0 38Z"/>
+        <path d="M0 38C48 30 73 3 72 -19C40 -17 10 10 0 38Z"/>
+      </g><path d="M-82 50Q0 73 82 50M-65 63Q0 78 65 63" stroke="#a3c6b0" stroke-width="3"/>
+    </symbol>
+    <symbol id="tulip" viewBox="-65 -80 130 210">
+      <path d="M0 26C-25 11 -42 -14 -37 -50L-13 -32L0 -64L15 -33L38 -51C42 -12 22 15 0 26Z" fill="#f2d2bb" stroke="#d9a8a1" stroke-width="2.8"/>
+      <path d="M0 27V121M0 88C-35 79 -43 54 -37 43C-16 46 -7 67 0 88ZM0 97C30 88 44 58 40 47C17 56 10 77 0 97Z" stroke="#88b4a7" stroke-width="3" fill="#d2e7da"/>
+    </symbol>
+    <symbol id="dahlia" viewBox="-70 -70 140 140">
+      <g fill="#f3dfc4" stroke="#d7af93" stroke-width="1.5">
+        <ellipse cx="0" cy="-32" rx="14" ry="31"/><ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(45)"/>
+        <ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(90)"/><ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(135)"/>
+        <ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(180)"/><ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(225)"/>
+        <ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(270)"/><ellipse cx="0" cy="-32" rx="14" ry="31" transform="rotate(315)"/>
+      </g><circle r="14" fill="#d4ad75"/><circle r="6" fill="#f9edcf"/>
+    </symbol>
+    <symbol id="hibiscus" viewBox="-75 -75 150 150">
+      <g fill="#f5d0d8" stroke="#d8a2af" stroke-width="2.2">
+        <path d="M0 -6C-20 -31 -9 -66 17 -60C40 -56 31 -21 0 -6Z"/>
+        <path d="M0 -6C-20 -31 -9 -66 17 -60C40 -56 31 -21 0 -6Z" transform="rotate(72)"/>
+        <path d="M0 -6C-20 -31 -9 -66 17 -60C40 -56 31 -21 0 -6Z" transform="rotate(144)"/>
+        <path d="M0 -6C-20 -31 -9 -66 17 -60C40 -56 31 -21 0 -6Z" transform="rotate(216)"/>
+        <path d="M0 -6C-20 -31 -9 -66 17 -60C40 -56 31 -21 0 -6Z" transform="rotate(288)"/>
+      </g><path d="M0 0L23 -31" stroke="#dfb47a" stroke-width="3"/><circle r="9" fill="#eec78d"/>
+    </symbol>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#mist)"/>
+  <g opacity=".52">
+    <use href="#sakura" x="36" y="55" width="155" height="160" transform="rotate(-21 114 135)"/>
+    <use href="#lotus" x="-24" y="377" width="190" height="206" transform="rotate(-16 70 477)"/>
+    <use href="#tulip" x="112" y="745" width="114" height="186" transform="rotate(19 169 838)"/>
+    <use href="#dahlia" x="1365" y="75" width="198" height="198" transform="rotate(8 1464 174)"/>
+    <use href="#hibiscus" x="1354" y="405" width="214" height="214" transform="rotate(-18 1461 512)"/>
+    <use href="#sakura" x="1376" y="777" width="160" height="165"/>
+    <use href="#dahlia" x="470" y="845" width="115" height="115" opacity=".54"/>
+    <use href="#sakura" x="1170" y="825" width="110" height="113" opacity=".5"/>
+  </g>
+  <g stroke="#a5bcae" stroke-width="1.2" opacity=".28">
+    <path d="M3 245C115 286 152 336 181 404M1600 316C1501 350 1486 381 1440 421M2 737C95 689 123 665 175 610M1600 724C1514 695 1470 672 1420 629"/>
+    <path d="M96 291Q75 267 67 241M133 320Q174 316 196 291M1525 355Q1554 339 1561 309M62 710Q32 717 14 707M1461 667Q1487 633 1505 630"/>
+  </g>
+</svg>

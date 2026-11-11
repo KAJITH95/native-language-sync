@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown,
-  Clipboard, Clock3, Copy, Download, Earth, FileText, Globe2, History,
+  Clipboard, Clock3, Copy, Download, FileText, Globe2, History,
   Languages, Lightbulb, LoaderCircle, LogOut, Menu, Mic, Moon,
   MoveUpRight, RotateCcw, Search, ShieldCheck, Sun, Trash2,
   Volume2, WandSparkles, WifiOff, X
 } from 'lucide-react';
 import { COUNTRIES } from './data/countries';
+import { FloralAtlas, FloralGlobeMark } from './components/FloralAtlas';
 import type { EnglishTone } from './types';
 
 type HistoryEntry = {
@@ -195,7 +196,7 @@ export default function App() {
       <header className="site-header">
         <div className="nav-container">
           <a className="brand" href="#top" aria-label="Native Language Sync home">
-            <span className="brand-symbol"><Languages size={23} strokeWidth={2.4}/></span>
+            <span className="brand-symbol"><FloralGlobeMark/></span>
             <span className="brand-copy"><strong>native<span>sync</span></strong><small>LANGUAGE WORKSPACE</small></span>
           </a>
           <div className="nav-links">
@@ -239,8 +240,9 @@ export default function App() {
               <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(english,'English translation')} disabled={!english} title="Copy English" aria-label="Copy English"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(english,'en')} disabled={!english} title="Listen to English" aria-label="Speak English"><Volume2 size={17}/></button></div><span className="word-count">{english?`${english.trim().split(/\s+/).length} words`:'Awaiting input'}</span></div>
             </article>
             <article className="translation-card target-card">
-              <div className="card-top"><div className="card-title"><span className="step-icon step-teal"><Earth size={19}/></span><div><h3>Around the world</h3><p>Translate for your destination</p></div></div><span className="step-counter">03 / 03</span></div>
+              <div className="card-top"><div className="card-title"><span className="step-icon step-teal"><FloralGlobeMark/></span><div><h3>Around the world</h3><p>Translate for your destination</p></div></div><span className="step-counter">03 / 03</span></div>
               <div className="country-language-grid"><div className="control-group"><label>COUNTRY</label><div className="select-wrap country-wrap"><span className="country-flag">{selectedCountry.flag}</span><select aria-label="Destination country" value={country} onChange={e=>changeCountry(e.target.value)}>{COUNTRIES.map(c=><option value={c.code} key={c.code}>{c.name}</option>)}</select><ChevronDown size={16}/></div></div><div className="control-group"><label>LANGUAGE</label><div className="select-wrap"><Languages size={16}/><select aria-label="Destination language" value={actualTarget} onChange={e=>changeLanguage(e.target.value)}>{selectedCountry.languages.map(l=><option value={l.code} key={l.code}>{l.name}</option>)}</select><ChevronDown size={16}/></div></div></div>
+              <FloralAtlas country={selectedCountry} language={selectedLanguage}/>
               <div className="output-box"><div className="output-content">{busy?<div className="loading-content"><LoaderCircle size={23} className="spin"/><p>Localizing your message…</p></div>:localized?<p lang={shortLang(actualTarget)}>{localized}</p>:<div className="empty-state"><span className="empty-icon green-empty"><Globe2 size={26}/></span><strong>Local translation</strong><small>Choose a country and bring your words to life.</small></div>}</div></div>
               <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(localized,'Localized translation')} disabled={!localized} title="Copy translation" aria-label="Copy localized"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(localized,actualTarget)} disabled={!localized} title="Listen" aria-label="Speak localized"><Volume2 size={17}/></button><button className="square-button" onClick={download} disabled={!localized} title="Download text" aria-label="Download"><Download size={17}/></button></div><span className="target-tag"><span/> {selectedLanguage.nativeName}</span></div>
             </article>

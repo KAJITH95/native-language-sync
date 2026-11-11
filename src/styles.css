@@ -234,3 +234,162 @@ button:focus-visible, select:focus-visible, a:focus-visible, textarea:focus-visi
 .nav-lock-button{display:flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}
 .nav-lock-button:hover{border-color:var(--primary);color:var(--primary)}
 .mobile-dropdown form{margin:0}.mobile-dropdown form button{display:flex;gap:8px;align-items:center;width:100%}
+
+/* ─────────────────────────────────────────────────────────────
+   v4.5 · Botanical Atlas — premium floral world identity
+   Design-only layer. The existing translation and authentication
+   behavior is intentionally untouched.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --surface: rgba(255, 255, 255, .96);
+  --text: #24283e;
+  --muted: #767a8d;
+  --line: #e5e3ed;
+  --background: #faf9fb;
+  --field: #fbfafc;
+  --primary: #644eae;
+  --indigo-ink: #44396d;
+  --shadow: 0 19px 50px rgba(59, 55, 94, .075), 0 2px 8px rgba(82, 68, 128, .024);
+}
+:root[data-theme='dark'] {
+  --surface: rgba(29, 34, 48, .98);
+  --text: #f5f1fa;
+  --muted: #aaa9bf;
+  --line: #3b3e51;
+  --background: #141723;
+  --field: #222738;
+  --primary: #b9a8f3;
+  --indigo-ink: #ded4fb;
+  --shadow: 0 22px 48px rgba(0, 0, 0, .22);
+}
+body {
+  background-color: var(--background);
+  background-image: linear-gradient(135deg, rgba(251,249,254,.52),rgba(239,250,245,.35));
+}
+body::before {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: url('/floral-world.svg') center / cover no-repeat;
+  opacity: .52;
+}
+:root[data-theme='dark'] body {background-image: linear-gradient(145deg,#171729,#152322)}
+:root[data-theme='dark'] body::before {opacity: .09; filter: saturate(.5)}
+.app-shell {isolation: isolate; position: relative}
+.site-header {background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(18px); box-shadow: 0 4px 28px #6452820a}
+.brand-symbol {
+  border-radius: 15px;
+  color: white;
+  background: linear-gradient(145deg,#7657bf 0%,#5d4eb3 52%,#497a7a 100%);
+  box-shadow: 0 9px 25px rgba(87,74,156,.21);
+}
+.floral-globe-mark {width: 30px; height: 30px; display: block; color: currentColor}
+.step-teal .floral-globe-mark {width: 27px; height: 27px}
+.brand-copy strong {letter-spacing: -1.2px}
+.brand-copy strong span {color:#8770ca}
+.brand-copy small {letter-spacing:2px;color:#9c92b4}
+.history-button {
+  background: linear-gradient(112deg,#6c52b7,#6548a8 58%,#5b768c);
+  border: 1px solid rgba(255,255,255,.26);
+  box-shadow: 0 9px 19px rgba(87,69,159,.17);
+}
+.workspace-section {padding-top: 44px}
+.section-label {color:#6a57aa; letter-spacing: 2.5px}
+.purple-circle {background:linear-gradient(135deg,#a17ee6,#8baea2);box-shadow:0 0 0 4px #8f79bd14}
+.workspace-intro h2 {font-size:clamp(26px,2.3vw,34px);line-height:1.22;letter-spacing:-1.45px;color:var(--text)}
+.workspace-intro h2 .dot {color:#9f78c3}
+.workspace-intro p {line-height:1.65;max-width:680px}
+.auto-indicator {color:#648a7f}
+.auto-indicator-dot {background:#56bda2;box-shadow:0 0 0 5px #59bda61e}
+.toolbar-reset {border-radius:12px;background:color-mix(in srgb,var(--surface) 94%,transparent)}
+.workspace-grid {gap:17px;align-items:stretch}
+.translation-card {
+  border-radius:21px;
+  border:1px solid rgba(151,138,176,.22);
+  box-shadow: var(--shadow);
+  background:var(--surface);
+  backdrop-filter:blur(10px);
+  transition:box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+}
+@media (hover:hover) and (pointer:fine) {
+  .translation-card:hover {box-shadow:0 24px 55px rgba(71,62,100,.105);border-color:rgba(135,117,176,.38);transform:translateY(-2px)}
+}
+.original-card {border-top:3px solid #9474cb}
+.english-card {border-top:3px solid #7e9cda}
+.target-card {border-top:3px solid #5fad99}
+.card-top {background:linear-gradient(110deg,rgba(246,242,253,.6),rgba(249,253,250,.52));padding-top:19px;padding-bottom:19px}
+:root[data-theme='dark'] .card-top {background:linear-gradient(100deg,#24243b,#1f2c31)}
+.step-icon {border-radius:13px;box-shadow: inset 0 1px 0 rgba(255,255,255,.6)}
+.step-violet {color:#785cbb;background:#f0eafa}
+.step-blue {color:#6f88be;background:#eaf1fc}
+.step-teal {color:#448f7a;background:#e6f4ed}
+.card-title h3 {font-size:14px;letter-spacing:-.5px}
+.card-title p {letter-spacing:.1px}
+.card-note {background:linear-gradient(110deg,#f2edfa,#eef8f2);color:#77649e}
+.auto-language-label {background:linear-gradient(110deg,#f9f6ff,#f6fbf8);border-color:#e7e1f1}
+:root[data-theme='dark'] .auto-language-label,:root[data-theme='dark'] .card-note {background:#272b3b;color:#c7c2dd;border-color:#46435d}
+.tone-switch {border-radius:12px}
+.tone-option {border-radius:9px}
+.tone-option.selected {color:#6651b6;background:#eee9fb;box-shadow:0 2px 8px #7554b012}
+.editor-wrap textarea, .output-box {border-radius:14px}
+.editor-wrap textarea:focus {border-color:#a08ad2;box-shadow:0 0 0 3px #9473cc20}
+.square-button {border-radius:10px}
+/* Destination atlas visual sits between selectors and translation result. */
+.destination-atlas {
+  margin:13px 19px 0;
+  overflow:hidden;
+  border:1px solid #dce5df;
+  border-radius:15px;
+  background:#f7faf7;
+  box-shadow:0 9px 22px rgba(89,104,110,.055);
+  flex-shrink:0;
+}
+.destination-atlas-heading {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 8px}
+.destination-atlas-eyebrow {display:inline-flex;align-items:center;gap:6px;flex-shrink:0;color:#688c84;font-size:8px;letter-spacing:1.45px;font-weight:900}
+.atlas-orbit-dot {width:6px;height:6px;display:inline-block;background:#76bfa8;border-radius:100%;box-shadow:0 0 0 3px #76bfa824}
+.destination-atlas-location {font-size:10px;font-weight:800;color:#534775;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.destination-atlas-location span {color:#a9a9b7}
+.destination-atlas-svg {display:block;width:100%;height:auto;aspect-ratio:800 / 350;background:#eefaef}
+.atlas-land {opacity:.9}
+.atlas-location-pin {transition:opacity .2s;animation:atlas-pin-arrive .38s cubic-bezier(.2,.8,.2,1) both}
+.atlas-marker-pulse {transform-origin:center;animation:atlas-pin-pulse 3.5s ease-out infinite}
+.destination-atlas-foot {display:flex;align-items:center;gap:7px;padding:7px 12px 9px;font-size:9px;color:#7f918c;letter-spacing:.15px;font-weight:650}
+.atlas-foot-flower {color:#ad82b6;font-size:13px}
+.atlas-foot-side {margin-left:auto;color:#668d7d;font-weight:800;white-space:nowrap}
+@keyframes atlas-pin-arrive {from{opacity:.15;filter:blur(2px)} to{opacity:1;filter:blur(0)}}
+@keyframes atlas-pin-pulse {0%,100%{opacity:.7;stroke-width:2.5}55%{opacity:.28;stroke-width:5}}
+/* Make room for the atlas without shrinking the localized message below usability. */
+.target-card .output-box {margin-top:11px;min-height:174px}
+.target-card .output-content {min-height:174px}
+:root[data-theme='dark'] .destination-atlas {background:#222b31;border-color:#394a4e;box-shadow:none}
+:root[data-theme='dark'] .destination-atlas-heading,:root[data-theme='dark'] .destination-atlas-foot {background:#242c34}
+:root[data-theme='dark'] .destination-atlas-eyebrow,:root[data-theme='dark'] .atlas-foot-side {color:#91c4b7}
+:root[data-theme='dark'] .destination-atlas-location {color:#d2c1f2}
+:root[data-theme='dark'] .destination-atlas-svg {filter:brightness(.77) saturate(.7)}
+@media(max-width:1180px) {
+  .destination-atlas {margin-left:15px;margin-right:15px}
+  .destination-atlas-heading {flex-direction:column;align-items:flex-start;gap:5px}
+  .destination-atlas-location {white-space:normal;text-align:left}
+  .destination-atlas-foot {font-size:8px}
+}
+@media(max-width:850px) {
+  .destination-atlas {margin:13px 19px 0}
+  .destination-atlas-heading {flex-direction:row;align-items:center}
+  .destination-atlas-location {white-space:nowrap;text-align:right}
+}
+@media(max-width:580px) {
+  .workspace-section {padding-top:29px}
+  .workspace-intro h2 {font-size:27px}
+  .translation-card {border-radius:18px}
+  .destination-atlas {margin:12px 15px 0}
+  .destination-atlas-heading {padding:9px 11px 7px;gap:5px}
+  .destination-atlas-eyebrow {font-size:7px;letter-spacing:.8px}
+  .destination-atlas-location {font-size:9px;max-width:60%}
+  .destination-atlas-foot {padding-left:11px;padding-right:11px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .atlas-location-pin,.atlas-marker-pulse {animation:none}
+  .translation-card {transition:none}
+}

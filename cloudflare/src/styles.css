@@ -393,3 +393,110 @@ body::before {
   .atlas-location-pin,.atlas-marker-pulse {animation:none}
   .translation-card {transition:none}
 }
+
+
+/* v4.6 · One-screen desktop workspace (page scroll-free) */
+/*
+ * Keep the three translation panels inside the visible desktop viewport.
+ * Long text scrolls INSIDE its editor/output; mobile, zoomed-in and
+ * short screens retain natural page scroll to avoid clipped controls.
+ */
+@media (min-width: 851px) and (min-height: 680px) {
+  html, body, #root { height: 100%; min-height: 0; overflow: hidden; }
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .site-header { height: 66px; flex: 0 0 66px; }
+  .app-shell > main {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .workspace-section {
+    width: 100%;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+  .workspace-intro {
+    flex: 0 0 auto;
+    margin-bottom: 9px;
+    align-items: center;
+  }
+  .workspace-intro h2 {
+    font-size: clamp(22px, 2vw, 28px);
+    margin: 4px 0 2px;
+    line-height: 1.15;
+  }
+  .workspace-intro p { line-height: 1.35; }
+  .flow-description { flex: 0 0 auto; margin-bottom: 7px; }
+  .workspace-grid {
+    flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 13px;
+  }
+  .translation-card {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .card-top { padding: 10px 15px; flex: 0 0 auto; }
+  .step-icon { width: 35px; height: 35px; }
+  .control-group { padding-top: 9px; flex: 0 0 auto; }
+  .control-group label { margin-bottom: 6px; }
+  .auto-language-label { min-height: 36px; padding: 7px 10px; }
+  .select-wrap, .tone-switch { height: 36px; }
+  .editor-wrap, .output-box {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-top: 9px;
+    overflow: hidden;
+  }
+  .editor-wrap textarea {
+    min-height: 0;
+    max-height: 100%;
+    height: 100%;
+    resize: none;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .output-content {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .output-content > p { max-height: none; overflow: visible; }
+  .card-bottom { flex: 0 0 auto; padding: 8px 15px 10px; }
+  .card-note { flex: 0 0 auto; padding: 6px 9px; margin-bottom: 9px; }
+  .destination-atlas { margin-top: 8px; flex: 0 0 auto; }
+  .destination-atlas-heading { padding: 6px 10px 4px; }
+  .destination-atlas-foot { padding: 4px 10px 5px; }
+  .destination-atlas-svg {
+    height: clamp(86px, 13vh, 125px);
+    aspect-ratio: auto;
+  }
+  .target-card .output-box { flex: 1 1 0; min-height: 0; margin-top: 8px; }
+  .target-card .output-content { min-height: 0; }
+  .workspace-footer {
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding-top: 6px;
+    gap: 8px;
+  }
+  .translation-status { line-height: 1.25; }
+}
+/* Under 680px tall or at <=850px wide, keep natural document scrolling. */

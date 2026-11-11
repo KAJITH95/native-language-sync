@@ -247,9 +247,13 @@ export default function App() {
               <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(localized,'Localized translation')} disabled={!localized} title="Copy translation" aria-label="Copy localized"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(localized,actualTarget)} disabled={!localized} title="Listen" aria-label="Speak localized"><Volume2 size={17}/></button><button className="square-button" onClick={download} disabled={!localized} title="Download text" aria-label="Download"><Download size={17}/></button></div><span className="target-tag"><span/> {selectedLanguage.nativeName}</span></div>
             </article>
           </div>
-          <div className="workspace-footer">
-            <div className="translation-status" role="status" aria-live="polite">{error?<span className="status-error"><WifiOff size={16}/> {error}</span>:busy?<span className="status-pending"><LoaderCircle size={16} className="spin"/> Translating automatically…</span>:localized?<span className="status-success"><Check size={16}/> Translation ready · {toneNote||'Direct translation'}</span>:canTranslate?<span className="status-pending">Waiting for typing to pause…</span>:<span className="status-pending">Type in any language. We’ll understand the meaning first.</span>}</div>
-          </div>
+          {(error || busy) && <div className="workspace-footer">
+            <div className="translation-status" role="status" aria-live="polite">
+              {error
+                ? <span className="status-error"><WifiOff size={16}/> {error}</span>
+                : <span className="status-pending"><LoaderCircle size={16} className="spin"/> Translating automatically…</span>}
+            </div>
+          </div>}
         </section>
       </main>
       {toast&&<div className="toast" role="status"><Check size={17}/>{toast}<button onClick={()=>setToast('')} aria-label="Dismiss"><X size={16}/></button></div>}

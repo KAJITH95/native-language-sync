@@ -21,7 +21,7 @@ const TONES: {id:EnglishTone;name:string;detail:string}[] = [
   {id:'standard',name:'Standard',detail:'Meaning-first English with corrected grammar'},
   {id:'formal',name:'Formal',detail:'Polished professional English'},
   {id:'casual',name:'Casual',detail:'Natural conversational English'},
-  {id:'email',name:'Email',detail:'Courteous email-style English'},
+  {id:'email',name:'Email',detail:'Complete email draft: Subject, greeting, body and sign-off'},
 ];
 const STORE = 'nls_v2_';
 function readStore<T>(key: string, fallback: T): T {
@@ -234,7 +234,7 @@ export default function App() {
             </article>
             <article className="translation-card english-card">
               <div className="card-top"><div className="card-title"><span className="step-icon step-blue"><WandSparkles size={18}/></span><div><h3>In English</h3><p>Meaning-first · Grammar-corrected</p></div></div><span className="step-counter">02 / 03</span></div>
-              <div className="control-group"><label>ENGLISH WRITING STYLE <span className="soft-tag">AI grammar correction</span></label><div className="tone-switch" role="group" aria-label="English format">{TONES.map(t=><button key={t.id} className={tone===t.id?'tone-option selected':'tone-option'} onClick={()=>changeTone(t.id)} title={t.detail}>{t.name}</button>)}</div></div>
+              <div className="control-group"><label>ENGLISH WRITING STYLE <span className="soft-tag">{tone==='email'?'Full email: subject · greeting · body · sign-off':'AI grammar correction'}</span></label><div className="tone-switch" role="group" aria-label="English format">{TONES.map(t=><button key={t.id} className={tone===t.id?'tone-option selected':'tone-option'} onClick={()=>changeTone(t.id)} title={t.detail}>{t.name}</button>)}</div></div>
               <div className="output-box"><div className="output-content">{busy?<div className="loading-content"><LoaderCircle size={23} className="spin"/><p>Finding the right words…</p></div>:english?<p>{english}</p>:<div className="empty-state"><span className="empty-icon"><Languages size={26}/></span><strong>English translation</strong><small>We’ll understand your message and rewrite it in clear English.</small></div>}</div></div>
               <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(english,'English translation')} disabled={!english} title="Copy English" aria-label="Copy English"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(english,'en')} disabled={!english} title="Listen to English" aria-label="Speak English"><Volume2 size={17}/></button></div><span className="word-count">{english?`${english.trim().split(/\s+/).length} words`:'Awaiting input'}</span></div>
               {detected&&<div className="detected-strip"><Check size={14}/> Source: {detected}</div>}

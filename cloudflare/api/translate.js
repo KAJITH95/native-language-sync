@@ -3,7 +3,7 @@
  * GroqCloud Free API (no paid AI Gateway). Works in Cloudflare Workers
  * and compatible Node/Vercel runtimes. Key lives ONLY in server secrets.
  */
-const VERSION = '4.2.0';
+const VERSION = '4.4.0';
 const DEFAULT_MODEL = 'qwen/qwen3.8-27b'; // Groq Free-plan model, verified Nov 2026.
 const MAX_CHARS = 1800;
 const MAX_BODY_BYTES = 12000;
@@ -57,7 +57,7 @@ function systemPrompt(targetName,targetCode,tone){
     standard:'Natural, grammatically correct, clear English. Keep the original formality.',
     formal:'Polished and respectful English, without adding information.',
     casual:'Friendly, conversational and natural English, without adding information.',
-    email:'Write the corrected English as a concise and courteous message, not a full email with invented subject, names or signatures.'
+    email:'Produce a COMPLETE, professional, ready-to-copy EMAIL DRAFT (not a sentence or plain paragraph). Preserve every source detail while making the wording polished and appropriate for email. Create a short topic-based subject line; do not invent events, facts, personal names, recipient addresses, or senders.'
   };
   return `You are a professional multilingual interpreter and editor, NOT a chatbot answering the input.
 TASK: Translate the user's CONTENT, which can be in ANY language, including mixed languages, transliterated spoken-language words in Latin letters, grammar mistakes, voice-transcription mistakes, code-switching, Hinglish, Tanglish, etc. A source-language dropdown does not exist. Detect the language(s) and intended meaning from context. Never reject a sentence merely for being romanized or mixed.
@@ -74,9 +74,41 @@ Correct English: "Hello, could you please tell me what its status is?"
 Input: "Please kal meeting ko shift kar do"
 Correct English: "Please reschedule the meeting for tomorrow." (Only if context indicates tomorrow.)
 
-REQUIRED OUTPUT: Return ONLY a valid JSON object with four string properties:
-{"englishOutput":"...","targetOutput":"...","detectedLanguage":"...","toneNote":"..."}
+${tone==='email' ? `EMAIL FORMAT IS MANDATORY regardless of the original input's language, grammar, punctuation, style or length.
+- Rewrite the input as a sendable, professional email, NOT a note, translation-only paragraph or commentary.
+- Build an informative Subject from the actual topic (do not claim facts not present in the input).
+- Greeting: if the recipient is named in the input, address them; otherwise use a neutral greeting such as "Hello,". Never invent someone's name or email address.
+- Body: preserve ALL input facts, uncertainties, numbers, qualifications, and requests. Use paragraphs and bullet points when helpful. No new claims or made-up details.
+- Closing: use a polite sign-off such as "Best regards,". Signature: use an actual name ONLY if the user gave it; otherwise use the editable placeholder "[Your Name]".
+- Compose the English email first, then translate that SAME email's subject, greeting, body and closing to ${targetName}. Keep the structure in both output panels. Keep placeholders editable and never fabricate recipient or sender details.
+- Required JSON schema for EMAIL mode (all strings, no extra prose):
+{"englishEmail":{"subject":"...","greeting":"Hello,","body":"...","closing":"Best regards,","signature":"[Your Name]"},"targetEmail":{"subject":"...","greeting":"...","body":"...","closing":"...","signature":"[Your Name]"},"detectedLanguage":"...","toneNote":"Email draft"}
+- Do not include Subject: inside the subject field; the server renders the label and blank lines. Do NOT send ordinary englishOutput/targetOutput strings in email mode.` : `REQUIRED OUTPUT: Return ONLY a valid JSON object with four string properties:
+{"englishOutput":"...","targetOutput":"...","detectedLanguage":"...","toneNote":"..."}`}
 The detectedLanguage value may describe multiple languages, e.g. "Mixed English + Romanized Tamil". Return no markdown, explanations, or extra keys.`;
+}
+// Assemble the email layout server-side, so email mode never turns into a flat paragraph.
+// Every content field comes from the model's meaning-first rewrite; only safe generic
+// greetings/sign-offs and editable placeholders are used when they are omitted.
+function emailLine(value, fallback) {
+  return typeof value==='string' && value.trim()
+    ? value.replace(/[\r\n]+/g,' ').trim()
+    : fallback;
+}
+function renderEmail(draft, legacyText, languageCode) {
+  // Backward-compatible handling for models that accidentally return the old schema.
+  if(!draft || typeof draft!=='object' || Array.isArray(draft) || typeof draft.body!=='string' || !draft.body.trim()) {
+    const plain=typeof legacyText==='string'?legacyText.trim():'';
+    if(!plain) throw new HttpError(502,'The email draft is incomplete. Please retry.');
+    if(/^Subject\s*:/im.test(plain) && /\n\s*\n/.test(plain)) return plain;
+    return `Subject: Message\n\nHello,\n\n${plain}\n\nBest regards,\n[Your Name]`;
+  }
+  const subject=emailLine(draft.subject,'Message').replace(/^Subject\s*:\s*/i,'');
+  const greeting=emailLine(draft.greeting,'Hello,');
+  const body=draft.body.trim();
+  const closing=emailLine(draft.closing,'Best regards,');
+  const signature=emailLine(draft.signature,'[Your Name]');
+  return `Subject: ${subject}\n\n${greeting}\n\n${body}\n\n${closing}\n${signature}`;
 }
 async function gatewayRequest({text,target,tone,authToken}) {
   // Key is supplied as a Cloudflare Worker secret or Node server environment var.
@@ -123,10 +155,21 @@ async function gatewayRequest({text,target,tone,authToken}) {
   const message=data?.choices?.[0]?.message;
   const content=typeof message?.content==='string'?message.content:Array.isArray(message?.content)?message.content.map(p=>p.text??'').join(''):'';
   const result=cleanJson(content);
-  if(!result||typeof result!=='object'||typeof result.englishOutput!=='string'||typeof result.targetOutput!=='string'||!result.englishOutput.trim()||!result.targetOutput.trim())
+  if(!result || typeof result!=='object')
     throw new HttpError(502,'The AI response is incomplete. Please retry.');
+  let englishOutput, targetOutput;
+  if(tone==='email') {
+    englishOutput=renderEmail(result.englishEmail,result.englishOutput,'en');
+    // English target uses the identical email to avoid a second interpretation.
+    targetOutput=target.toLowerCase()==='en' ? englishOutput : renderEmail(result.targetEmail,result.targetOutput,target);
+  } else {
+    if(typeof result.englishOutput!=='string' || typeof result.targetOutput!=='string' || !result.englishOutput.trim() || !result.targetOutput.trim())
+      throw new HttpError(502,'The AI response is incomplete. Please retry.');
+    englishOutput=result.englishOutput.trim();
+    targetOutput=result.targetOutput.trim();
+  }
   return {
-    success:true, englishOutput:result.englishOutput.trim(), targetOutput:result.targetOutput.trim(),
+    success:true, englishOutput, targetOutput,
     detectedLanguage:typeof result.detectedLanguage==='string'&&result.detectedLanguage.trim()?result.detectedLanguage.trim():'Auto-detected',
     detectedCode:'auto',provider:'GroqCloud Free AI (Qwen multilingual model)',
     toneNote:typeof result.toneNote==='string'&&result.toneNote.trim()?result.toneNote.trim().slice(0,120):'Meaning-first English correction and translation',

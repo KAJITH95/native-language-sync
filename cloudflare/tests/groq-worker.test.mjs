@@ -189,3 +189,51 @@ test('Cross-site metadata cannot access signed-in translation endpoint',async()=
   assert.equal((await worker.fetch(req,env)).status,403);
  }
 });
+
+
+test('Email mode produces a complete English and localized email from mixed-language input',async()=>{
+ const prev=globalThis.fetch;let captured;
+ const reply={
+   englishEmail:{subject:'Candidate Evaluation Feedback',greeting:'Hello,',body:'I would like to share my assessment of the candidate.\n\nThe candidate has 10 years of experience.\n- Communication: Good\n- Testing: Basic\n- Murex functional knowledge: Basic\n- Git knowledge: Basic\nTheir Murex knowledge is insufficient.',closing:'Best regards,',signature:'[Your Name]'},
+   targetEmail:{subject:'후보자 평가 의견',greeting:'안녕하세요,',body:'후보자에 대한 평가를 공유드립니다.\n\n후보자는 10년의 경력이 있습니다.\n- 의사소통: 좋음\n- 테스팅: 기본\n- Murex 기능 지식: 기본\n- Git 지식: 기본\nMurex 지식이 충분하지 않습니다.',closing:'감사합니다,',signature:'[Your Name]'},
+   detectedLanguage:'Mixed English + Romanized Tamil',toneNote:'Email draft'
+ };
+ globalThis.fetch=async(url,opt)=>{captured=JSON.parse(opt.body);return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(reply)}}]}),{status:200});};
+ try{
+   const out=await runTranslation({text:'Intha candidate ku 10 years experience iruku but murex knowledge proper ah illa. Communication good, testing basic, Git basic.',target:'ko',tone:'email'},env.GROQ_API_KEY);
+   assert.match(out.englishOutput,/^Subject: Candidate Evaluation Feedback\n\nHello,\n\n/);
+   assert.match(out.englishOutput,/10 years of experience/);
+   assert.match(out.englishOutput,/- Testing: Basic/);
+   assert.match(out.englishOutput,/\n\nBest regards,\n\[Your Name\]$/);
+   assert.match(out.targetOutput,/^Subject: 후보자 평가 의견\n\n안녕하세요,/);
+   assert.match(out.targetOutput,/감사합니다,\n\[Your Name\]$/);
+   assert.match(captured.messages[0].content,/COMPLETE, professional, ready-to-copy EMAIL DRAFT/);
+   assert.match(captured.messages[0].content,/Never invent someone's name/);
+ }finally{globalThis.fetch=prev}
+});
+
+test('Email renderer keeps safe subject and signature lines and wraps a model legacy fallback',async()=>{
+ const old=globalThis.fetch;
+ let count=0;
+ globalThis.fetch=async()=>{
+   count++;
+   return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({englishOutput:'Please confirm whether the report has been approved.',targetOutput:'Veuillez confirmer si le rapport a été approuvé.',detectedLanguage:'English',toneNote:'Email draft'})}}]}),{status:200});
+ };
+ try {
+   const r=await runTranslation({text:'Please confirm whether the report has been approved.',target:'fr',tone:'email'},env.GROQ_API_KEY);
+   assert.match(r.englishOutput,/^Subject: Message\n\nHello,\n\nPlease confirm/);
+   assert.match(r.englishOutput,/Best regards,\n\[Your Name\]$/);
+   assert.match(r.targetOutput,/Subject: Message[\s\S]+Veuillez confirmer/);
+   assert.equal(count,1);
+ } finally {globalThis.fetch=old}
+});
+
+test('Email mode to English returns identical structured text in boxes 2 and 3',async()=>{
+ const old=globalThis.fetch;
+ globalThis.fetch=async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({englishEmail:{subject:'Status Update',greeting:'Hello,',body:'Could you provide the current status?',closing:'Best regards,',signature:'[Your Name]'},targetEmail:{subject:'Status Update',greeting:'Hello,',body:'Could you provide the current status?',closing:'Best regards,',signature:'[Your Name]'},detectedLanguage:'Tanglish'})}}]}),{status:200});
+ try{
+   const r=await runTranslation({text:'Status ennanu solla mudiyuma?',target:'en',tone:'email'},env.GROQ_API_KEY);
+   assert.equal(r.englishOutput,r.targetOutput);
+   assert.match(r.englishOutput,/Subject: Status Update/);
+ }finally{globalThis.fetch=old}
+});

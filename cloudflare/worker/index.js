@@ -1,6 +1,6 @@
 import { runTranslation, HttpError } from '../api/translate.js';
 
-const VERSION = '4.3.0';
+const VERSION = '4.4.0';
 const COOKIE = '__Host-nls_session';
 const SESSION_SECONDS = 24 * 60 * 60;
 const encoder = new TextEncoder();

@@ -1,458 +1,260 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  Sparkles, 
-  CheckCircle2, 
-  X
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ArrowDown, ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown,
+  Clipboard, Clock3, Copy, Download, Earth, FileText, Globe2, History,
+  Languages, Lightbulb, LoaderCircle, LogOut, Menu, Mic, Moon,
+  MoveUpRight, RotateCcw, Search, ShieldCheck, Sun, Trash2,
+  Volume2, WandSparkles, WifiOff, X
 } from 'lucide-react';
-import { Header } from './components/Header';
-import { Box1Input } from './components/Box1Input';
-import { Box2English } from './components/Box2English';
-import { Box3Target } from './components/Box3Target';
-import { HistoryModal } from './components/HistoryModal';
 import { COUNTRIES } from './data/countries';
-import { EnglishTone, TranslationHistoryItem } from './types';
+import type { EnglishTone } from './types';
 
-const STORAGE_KEY_HISTORY = 'polyglot_history_v1';
-const STORAGE_KEY_COUNTRY = 'polyglot_country_v1';
-const STORAGE_KEY_LANG = 'polyglot_lang_v1';
-const STORAGE_KEY_THEME = 'polyglot_theme_v1';
-
+type HistoryEntry = {
+  id: string; text: string; english: string; output: string; source: string;
+  target: string; country: string; targetName: string; time: number;
+};
+type APIResult = {
+  englishOutput: string; targetOutput: string; detectedLanguage: string;
+  detectedCode: string; provider: string; toneNote: string; usageNote: string; targetWarning?: string;
+};
+const TONES: {id:EnglishTone;name:string;detail:string}[] = [
+  {id:'standard',name:'Standard',detail:'Meaning-first English with corrected grammar'},
+  {id:'formal',name:'Formal',detail:'Polished professional English'},
+  {id:'casual',name:'Casual',detail:'Natural conversational English'},
+  {id:'email',name:'Email',detail:'Courteous email-style English'},
+];
+const STORE = 'nls_v2_';
+function readStore<T>(key: string, fallback: T): T {
+  try {const s = window.localStorage.getItem(STORE+key); return s ? JSON.parse(s) as T : fallback;} catch {return fallback;}
+}
+function shortLang(code: string): string {return code.split('-')[0];}
+function locale(code: string): string {
+  const base = shortLang(code);
+  const overrides:Record<string,string> = {ta:'ta-IN',hi:'hi-IN',te:'te-IN',ml:'ml-IN',kn:'kn-IN',bn:'bn-IN',ar:'ar-SA',ja:'ja-JP',zh:'zh-CN',ko:'ko-KR',en:'en-US',fr:'fr-FR',es:'es-ES'};
+  return overrides[base] || base;
+}
+function timeAgo(time:number):string {
+  const diff = Date.now()-time;
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  return new Date(time).toLocaleDateString();
+}
 export default function App() {
-  // Theme State
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_THEME);
-    if (saved !== null) return saved === 'dark';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.body.classList.add('dark');
-      localStorage.setItem(STORAGE_KEY_THEME, 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.body.classList.remove('dark');
-      localStorage.setItem(STORAGE_KEY_THEME, 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => !prev);
-  };
-
-  // Box 1 State
-  const [inputText, setInputText] = useState<string>('');
-  const [detectedLanguage, setDetectedLanguage] = useState<string>('');
-
-  // Box 2 State
-  const [englishText, setEnglishText] = useState<string>('');
+  const [dark, setDark] = useState(() => readStore('dark', false));
+  const [input, setInput] = useState('');
+  const source = 'auto'; // Always detect language and mixed-language meaning automatically.
+  const [country, setCountry] = useState(() => readStore('country','IN'));
+  const [target, setTarget] = useState(() => readStore('target','ta'));
   const [tone, setTone] = useState<EnglishTone>('standard');
-  const [alternativePhasings, setAlternativePhasings] = useState<string[]>([]);
-  const [grammarNotes, setGrammarNotes] = useState<string>('');
-  const [isBox2Loading, setIsBox2Loading] = useState<boolean>(false);
+  const [english, setEnglish] = useState('');
+  const [localized, setLocalized] = useState('');
+  const [detected, setDetected] = useState('');
+  const [toneNote, setToneNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
+  const [history, setHistory] = useState<HistoryEntry[]>(() => readStore('history',[]));
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [countryFilter, setCountryFilter] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const controller = useRef<AbortController|null>(null);
+  const revision = useRef(0);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
+  const speechRef = useRef<{stop:()=>void}|null>(null);
 
-  // Box 3 State
-  const [selectedCountryCode, setSelectedCountryCode] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_COUNTRY) || 'IN';
-  });
-  const [selectedLanguageCode, setSelectedLanguageCode] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_LANG) || 'ta';
-  });
-  const [targetOutputText, setTargetOutputText] = useState<string>('');
-  const [pronunciation, setPronunciation] = useState<string>('');
-  const [usageNote, setUsageNote] = useState<string>('');
-  const [isBox3Loading, setIsBox3Loading] = useState<boolean>(false);
-  const [rateLimitCooldown, setRateLimitCooldown] = useState<number>(0);
+  const selectedCountry = COUNTRIES.find(x=>x.code===country) || COUNTRIES[0];
+  const selectedLanguage = selectedCountry.languages.find(x=>x.code===target) || selectedCountry.languages[0];
+  const actualTarget = selectedLanguage.code;
+  const canTranslate = input.trim().length>0 && input.length<=1800;
+  const isEmpty = !input.trim();
 
-  // Global UI State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [history, setHistory] = useState<TranslationHistoryItem[]>(() => {
+  useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem(STORE+'dark',JSON.stringify(dark));},[dark]);
+  useEffect(()=>{localStorage.setItem(STORE+'history',JSON.stringify(history.slice(0,25)));},[history]);
+  useEffect(()=>{localStorage.setItem(STORE+'country',JSON.stringify(country));localStorage.setItem(STORE+'target',JSON.stringify(target));},[country,target]);
+  useEffect(()=>()=>{controller.current?.abort(); speechRef.current?.stop(); if(toastTimer.current)clearTimeout(toastTimer.current);},[]);
+
+  const notify = useCallback((message:string)=>{
+    setToast(message);
+    if(toastTimer.current)clearTimeout(toastTimer.current);
+    toastTimer.current=setTimeout(()=>setToast(''),3500);
+  },[]);
+  const invalidate = useCallback(()=>{
+    revision.current++;
+    controller.current?.abort();
+    controller.current=null;
+    setBusy(false);setError('');setEnglish('');setLocalized('');setDetected('');setToneNote('');
+  },[]);
+  const changeInput = (value:string)=>{invalidate();setInput(value);};
+  const changeTone = (value:EnglishTone)=>{invalidate();setTone(value);};
+  const changeCountry = (value:string)=>{
+    const entry = COUNTRIES.find(c=>c.code===value) || COUNTRIES[0];
+    invalidate();setCountry(entry.code);setTarget(entry.defaultLanguageCode || entry.languages[0].code);setFilterOpen(false);setCountryFilter('');
+  };
+  const changeLanguage = (value:string)=>{invalidate();setTarget(value);};
+  const reset = ()=>{invalidate();setInput('');notify('Workspace reset');setMenuOpen(false);};
+  const translate = useCallback(async (text:string,sourceCode:string,targetCode:string,selectedTone:EnglishTone,countryCode:string)=>{
+    if (!text.trim() || text.length>1800) return;
+    controller.current?.abort();
+    const abort = new AbortController();controller.current=abort;
+    const thisRevision=++revision.current;
+    setBusy(true);setError('');
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_HISTORY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
-  const activeAbortRef = useRef<AbortController | null>(null);
-  const toastTimeoutRef = useRef<any>(null);
-
-  // Maintain refs for country and language so debounced input translates to current target without re-triggering Box 2
-  const selectedCountryCodeRef = useRef(selectedCountryCode);
-  selectedCountryCodeRef.current = selectedCountryCode;
-  const selectedLanguageCodeRef = useRef(selectedLanguageCode);
-  selectedLanguageCodeRef.current = selectedLanguageCode;
-  const englishTextRef = useRef(englishText);
-  englishTextRef.current = englishText;
-
-  const showToast = useCallback((msg: string) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-    setToastMessage(msg);
-    toastTimeoutRef.current = setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  }, []);
-
-  // Rate limit cooldown timer
-  useEffect(() => {
-    if (rateLimitCooldown <= 0) return;
-    const interval = setInterval(() => {
-      setRateLimitCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
+      const response=await fetch('/api/translate',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        signal:abort.signal,body:JSON.stringify({text,source:sourceCode,target:targetCode,tone:selectedTone})
       });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [rateLimitCooldown]);
-
-  // Save preferences
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_COUNTRY, selectedCountryCode);
-  }, [selectedCountryCode]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_LANG, selectedLanguageCode);
-  }, [selectedLanguageCode]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history.slice(0, 30)));
-    } catch (e) {
-      console.warn('Could not save history to localStorage', e);
-    }
-  }, [history]);
-
-  // Current Country & Language Helpers
-  const currentCountry = COUNTRIES.find((c) => c.code === selectedCountryCode) || COUNTRIES[0];
-  const currentLanguage = currentCountry.languages.find((l) => l.code === selectedLanguageCode) || currentCountry.languages[0];
-
-  // Box 3 translation function
-  const translateBox3FromEnglish = useCallback(
-    async (engText: string, countryCode: string, langCode: string, sourceInput: string) => {
-      if (!engText || !engText.trim()) {
-        setTargetOutputText('');
-        setPronunciation('');
-        setUsageNote('');
+      // Free AI service or a failed serverless function may return text/HTML instead of JSON.
+      // Parse defensively so the UI shows a meaningful error, not SyntaxError.
+      if (response.status === 401) {
+        window.location.assign('/login');
         return;
       }
-
-      const country = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
-      const lang = country.languages.find((l) => l.code === langCode) || country.languages[0];
-
-      setIsBox3Loading(true);
+      const raw=await response.text();
+      let data: (APIResult & {error?:string}) | null = null;
       try {
-        const res = await fetch('/api/translate-box3', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            englishText: engText,
-            countryName: country.name,
-            languageName: lang.name,
-            languageCode: lang.code,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          if (res.status === 429 || data.isQuota) {
-            const delay = data.retryDelay || 25;
-            setRateLimitCooldown(delay);
-            showToast(`API limit reached. Auto-retrying in ${delay}s...`);
-            return;
-          }
-          throw new Error(data.error || 'Failed to translate to target country language.');
-        }
-
-        setRateLimitCooldown(0);
-        setTargetOutputText(data.translatedText);
-        setPronunciation(data.pronunciation || '');
-        setUsageNote(data.usageNote || '');
-
-        // Add to history
-        if (sourceInput && sourceInput.trim()) {
-          const newItem: TranslationHistoryItem = {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            timestamp: Date.now(),
-            input: sourceInput,
-            english: engText,
-            countryName: country.name,
-            languageName: lang.name,
-            targetOutput: data.translatedText,
-          };
-          setHistory((prev) => [newItem, ...prev.filter((h) => h.input !== sourceInput)].slice(0, 30));
-        }
-      } catch (err: any) {
-        console.error('Box 3 translation error:', err);
-      } finally {
-        setIsBox3Loading(false);
+        data=JSON.parse(raw) as APIResult & {error?:string};
+      } catch {
+        throw new Error(response.ok
+          ? 'The translation server returned an invalid response. Please retry.'
+          : `Translation server unavailable (HTTP ${response.status}). Please retry in a moment.`);
       }
-    },
-    [showToast]
-  );
-
-  // Core Fast Dual-Step Pipeline (Single API Call for Box 2 & Box 3)
-  const executePipeline = useCallback(
-    async (text: string, toneToUse: EnglishTone, countryCode: string, langCode: string) => {
-      if (!text || !text.trim()) {
-        setEnglishText('');
-        setTargetOutputText('');
-        setPronunciation('');
-        setUsageNote('');
-        setAlternativePhasings([]);
-        setGrammarNotes('');
-        setIsBox2Loading(false);
-        setIsBox3Loading(false);
-        return;
+      if(!response.ok || !data?.englishOutput) {
+        throw new Error(data?.error || `Translation failed (HTTP ${response.status}). Please try again.`);
       }
+      if(thisRevision!==revision.current || abort.signal.aborted)return;
+      setEnglish(data.englishOutput);setLocalized(data.targetOutput);setDetected(data.detectedLanguage);setToneNote(data.toneNote);setError(data.targetWarning||'');
+      const countryData=COUNTRIES.find(x=>x.code===countryCode)||COUNTRIES[0];
+      const language=countryData.languages.find(x=>x.code===targetCode)||countryData.languages[0];
+      const entry:HistoryEntry={id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,text,english:data.englishOutput,output:data.targetOutput,source:sourceCode,target:targetCode,country:countryCode,targetName:language.name,time:Date.now()};
+      if(data.targetOutput)setHistory(prev=>[entry,...prev.filter(h=>h.text!==text||h.target!==targetCode)].slice(0,25));
+    } catch(e) {
+      if(abort.signal.aborted || thisRevision!==revision.current)return;
+      setEnglish('');setLocalized('');setDetected('');
+      setError(e instanceof Error?e.message:'Translation unavailable. Please retry.');
+    }finally {if(thisRevision===revision.current){setBusy(false);controller.current=null;}}
+  },[]);
+  useEffect(()=>{
+    if(!canTranslate)return;
+    // Translate only after the user pauses typing, to avoid one API request per keystroke.
+    const timer=setTimeout(()=>translate(input,source,actualTarget,tone,country),1250);
+    return()=>clearTimeout(timer);
+  },[input,source,actualTarget,tone,country,canTranslate,translate]);
 
-      // Abort previous inflight request to conserve quota
-      if (activeAbortRef.current) {
-        activeAbortRef.current.abort();
-      }
-      activeAbortRef.current = new AbortController();
-
-      const country = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
-      const lang = country.languages.find((l) => l.code === langCode) || country.languages[0];
-
-      setIsBox2Loading(true);
-      setIsBox3Loading(true);
-
-      try {
-        const res = await fetch('/api/translate-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: activeAbortRef.current.signal,
-          body: JSON.stringify({
-            text: text.trim(),
-            tone: toneToUse,
-            countryName: country.name,
-            languageName: lang.name,
-            languageCode: lang.code,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          if (res.status === 429 || data.isQuota) {
-            const delay = data.retryDelay || 25;
-            setRateLimitCooldown(delay);
-            showToast(`API limit reached. Auto-retrying in ${delay}s...`);
-            return;
-          }
-          throw new Error(data.error || 'Failed to process translation.');
-        }
-
-        setRateLimitCooldown(0);
-        setDetectedLanguage(data.detectedLanguage || 'Auto-detected');
-        setEnglishText(data.englishOutput || '');
-        setAlternativePhasings(data.alternativePhasings || []);
-        setGrammarNotes(data.grammarNotes || '');
-        setTargetOutputText(data.targetOutput || '');
-        setPronunciation(data.targetPronunciation || '');
-        setUsageNote(data.usageNote || '');
-
-        // Add to history
-        const newItem: TranslationHistoryItem = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          timestamp: Date.now(),
-          input: text.trim(),
-          english: data.englishOutput,
-          countryName: country.name,
-          languageName: lang.name,
-          targetOutput: data.targetOutput,
-        };
-        setHistory((prev) => [newItem, ...prev.filter((h) => h.input !== text.trim())].slice(0, 30));
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        console.error('Translation error:', err);
-        const errMsg = err?.message || 'Translation failed. Please try again.';
-        showToast(errMsg);
-      } finally {
-        setIsBox2Loading(false);
-        setIsBox3Loading(false);
-      }
-    },
-    [showToast]
-  );
-
-  // Debounced auto-translate when typing in Box 1 or changing tone
-  useEffect(() => {
-    if (!inputText.trim()) {
-      setEnglishText('');
-      setTargetOutputText('');
-      setPronunciation('');
-      setUsageNote('');
-      setAlternativePhasings([]);
-      setGrammarNotes('');
-      setIsBox2Loading(false);
-      setIsBox3Loading(false);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      executePipeline(inputText, tone, selectedCountryCodeRef.current, selectedLanguageCodeRef.current);
-    }, 650);
-
-    return () => clearTimeout(timer);
-  }, [inputText, tone, executePipeline]);
-
-  // Instant Tone Change Handler in Box 2 (No debounce delay!)
-  const handleToneChange = (newTone: EnglishTone) => {
-    setTone(newTone);
-    if (inputText.trim()) {
-      executePipeline(inputText, newTone, selectedCountryCodeRef.current, selectedLanguageCodeRef.current);
-    }
+  const copy = async(text:string,label='Text')=>{
+    if(!text)return;
+    try{await navigator.clipboard.writeText(text);notify(`${label} copied`);}catch{notify('Clipboard unavailable; select and copy the text.');}
   };
-
-  // Alternative Phrasing Selection
-  const handleSelectAlternative = (selectedAlt: string) => {
-    setEnglishText(selectedAlt);
-    showToast('Applied alternative phrasing to Box 2');
-    translateBox3FromEnglish(selectedAlt, selectedCountryCode, selectedLanguageCode, inputText);
+  const speak=(text:string,code:string)=>{
+    if(!text)return;
+    if(!('speechSynthesis' in window)){notify('Text-to-speech is not supported in this browser.');return;}
+    window.speechSynthesis.cancel();
+    const utterance=new SpeechSynthesisUtterance(text);
+    utterance.lang=locale(code==='tanglish'?'ta':code==='auto'?(detected==='Tamil'?'ta':'en'):code);
+    utterance.rate=.92;
+    window.speechSynthesis.speak(utterance);
   };
-
-  // Country Change Handler in Box 3 (Updates Box 3 only, leaves Box 2 untouched)
-  const handleCountryChange = (countryCode: string) => {
-    setSelectedCountryCode(countryCode);
-    const country = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
-    const defaultLang = country.defaultLanguageCode || country.languages[0]?.code || 'en';
-    setSelectedLanguageCode(defaultLang);
-
-    if (englishText && englishText.trim()) {
-      translateBox3FromEnglish(englishText, countryCode, defaultLang, inputText);
-    }
+  const toggleMic=()=>{
+    if(recording){speechRef.current?.stop();setRecording(false);return;}
+    const BrowserRecognition=(window as unknown as {SpeechRecognition?:new()=>any;webkitSpeechRecognition?:new()=>any}).SpeechRecognition||(window as unknown as {webkitSpeechRecognition?:new()=>any}).webkitSpeechRecognition;
+    if(!BrowserRecognition){notify('Mic needs Chrome/Edge and microphone permission.');return;}
+    try{
+      const recognition=new BrowserRecognition();
+      recognition.lang=navigator.language||'en-IN'; // Speech APIs usually require one microphone language; typed text is universal.
+      recognition.interimResults=false;recognition.continuous=false;
+      recognition.onresult=(event:{results:ArrayLike<ArrayLike<{transcript:string}>>})=>{
+        const spoken=event.results[0]?.[0]?.transcript||'';
+        if(spoken)changeInput(input?`${input} ${spoken}`:spoken);
+      };
+      recognition.onend=()=>setRecording(false);
+      recognition.onerror=()=>{setRecording(false);notify('Microphone could not capture speech.');};
+      recognition.start();speechRef.current=recognition;setRecording(true);
+    }catch{notify('Could not access microphone.');}
   };
-
-  // Language Change Handler in Box 3 (Updates Box 3 only, leaves Box 2 untouched)
-  const handleLanguageChange = (langCode: string) => {
-    setSelectedLanguageCode(langCode);
-    if (englishText && englishText.trim()) {
-      translateBox3FromEnglish(englishText, selectedCountryCode, langCode, inputText);
-    }
+  const download=()=>{
+    if(!english&&!localized)return;
+    const content=`NATIVE LANGUAGE SYNC\n=====================\n\nOriginal (${source}):\n${input}\n\nEnglish:\n${english}\n\n${selectedLanguage.name} (${selectedCountry.name}):\n${localized}\n\nGenerated with Native Language Sync. Verify important details.\n`;
+    const url=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='native-language-sync-translation.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);notify('Translation downloaded');
   };
-
-  // Reset workspace
-  const handleResetAll = () => {
-    setInputText('');
-    setDetectedLanguage('');
-    setEnglishText('');
-    setAlternativePhasings([]);
-    setGrammarNotes('');
-    setTargetOutputText('');
-    setPronunciation('');
-    setUsageNote('');
-    showToast('Workspace reset.');
+  const restore=(h:HistoryEntry)=>{
+    invalidate();setInput(h.text);setEnglish(h.english);setLocalized(h.output);
+    setCountry(h.country);setTarget(h.target);setDetected('Restored from history');
+    setHistoryOpen(false);notify('Translation restored');
   };
-
-  // Restore from history
-  const handleRestoreHistoryItem = (item: TranslationHistoryItem) => {
-    setInputText(item.input);
-    setEnglishText(item.english);
-    setTargetOutputText(item.targetOutput);
-    showToast('Restored translation from history.');
+  const switchTargetToEnglish=()=>{
+    invalidate();setInput(localized||english||input);setCountry('IN');setTarget('ta');
   };
-
-  const isAnyLoading = isBox2Loading || isBox3Loading;
+  const visibleCountries=COUNTRIES.filter(c=>c.name.toLowerCase().includes(countryFilter.toLowerCase()) || c.languages.some(l=>l.name.toLowerCase().includes(countryFilter.toLowerCase())));
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#F8F9FA] dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans overflow-hidden select-none transition-colors">
-      {/* App Header */}
-      <Header
-        onOpenHistory={() => setIsHistoryOpen(true)}
-        historyCount={history.length}
-        onResetAll={handleResetAll}
-        isDarkMode={isDarkMode}
-        onToggleTheme={toggleTheme}
-      />
-
-      {/* Main 3-Column High Density Workspace */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-0 overflow-y-auto lg:overflow-hidden bg-white dark:bg-[#0d131f] border-b border-slate-200/80 dark:border-slate-800/80">
-        {/* BOX 1: Native Language Input */}
-        <Box1Input
-          value={inputText}
-          onChange={setInputText}
-          onTranslate={() => {}}
-          isLoading={isBox2Loading}
-          detectedLanguage={detectedLanguage}
-          onShowToast={showToast}
-        />
-
-        {/* BOX 2: Polished English Output */}
-        <Box2English
-          englishText={englishText}
-          tone={tone}
-          onToneChange={handleToneChange}
-          alternativePhasings={alternativePhasings}
-          grammarNotes={grammarNotes}
-          isLoading={isBox2Loading}
-          onSelectAlternative={handleSelectAlternative}
-          onRefreshTone={() => handleToneChange(tone)}
-          onShowToast={showToast}
-        />
-
-        {/* BOX 3: Country & Native Language Output */}
-        <Box3Target
-          selectedCountryCode={selectedCountryCode}
-          selectedLanguageCode={selectedLanguageCode}
-          onCountryChange={handleCountryChange}
-          onLanguageChange={handleLanguageChange}
-          targetOutputText={targetOutputText}
-          pronunciation={pronunciation}
-          usageNote={usageNote}
-          isLoading={isBox3Loading}
-          onManualTranslate={() => translateBox3FromEnglish(englishText, selectedCountryCode, selectedLanguageCode, inputText)}
-          onShowToast={showToast}
-        />
-      </main>
-
-      {/* Professional Footer */}
-      <footer className="h-10 bg-slate-900 dark:bg-[#080c14] border-t border-slate-800 text-slate-300 dark:text-slate-400 flex items-center justify-between px-4 sm:px-8 text-xs font-sans tracking-normal shrink-0">
-        <div className="flex items-center gap-2 font-medium">
-          <span className="text-white font-semibold">&copy; 2026 KMK Labs</span>
-        </div>
-        <div className="text-[11px] text-slate-400 dark:text-slate-500">
-          <span>Concept &amp; product direction by KMK Labs &middot; Developed with AI</span>
-        </div>
-      </footer>
-
-      {/* History Modal */}
-      <HistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        history={history}
-        onClearHistory={() => {
-          setHistory([]);
-          showToast('History cleared.');
-        }}
-        onRestoreItem={handleRestoreHistoryItem}
-        onShowToast={showToast}
-      />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-14 right-6 z-50 bg-slate-900 dark:bg-slate-800 text-white border border-slate-700/80 px-4 py-3 rounded-xl shadow-2xl text-xs font-mono font-medium flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-3.5 h-3.5" />
+    <div className="app-shell">
+      <header className="site-header">
+        <div className="nav-container">
+          <a className="brand" href="#top" aria-label="Native Language Sync home">
+            <span className="brand-symbol"><Languages size={23} strokeWidth={2.4}/></span>
+            <span className="brand-copy"><strong>native<span>sync</span></strong><small>LANGUAGE WORKSPACE</small></span>
+          </a>
+          <div className="nav-links">
+            <a className="nav-link active" href="#workspace">Workspace</a>
+            <button className="nav-link" onClick={()=>setShowInfo(true)}>How it works</button>
+            <span className="nav-separator"/>
+            <button className="nav-icon-button" title="Toggle color theme" onClick={()=>setDark(!dark)} aria-label={dark?'Light theme':'Dark theme'}>{dark?<Sun size={19}/>:<Moon size={19}/>}</button>
+            <button className="history-button" onClick={()=>setHistoryOpen(true)}><History size={17}/><span>History</span>{history.length>0&&<i>{history.length}</i>}</button>
+            <form action="/auth/logout" method="POST"><button type="submit" className="nav-lock-button" title="Lock this workspace"><LogOut size={16}/> Log out</button></form>
           </div>
-          <span className="text-slate-100">{toastMessage}</span>
-          <button
-            onClick={() => setToastMessage(null)}
-            className="ml-2 text-slate-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="mobile-links">
+            <button className="nav-icon-button" onClick={()=>setDark(!dark)} aria-label="Toggle theme">{dark?<Sun size={20}/>:<Moon size={20}/>}</button>
+            <button className="nav-icon-button" onClick={()=>setHistoryOpen(true)} aria-label="Translation history"><History size={20}/></button>
+            <button className="nav-icon-button" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Menu">{menuOpen?<X size={21}/>:<Menu size={21}/>}</button>
+          </div>
         </div>
-      )}
+        {menuOpen&&<div className="mobile-dropdown"><a href="#workspace" onClick={()=>setMenuOpen(false)}>Workspace</a><button onClick={()=>{setShowInfo(true);setMenuOpen(false);}}>How it works</button><button onClick={reset}>Reset workspace</button><form action="/auth/logout" method="POST"><button type="submit"><LogOut size={16}/> Log out</button></form></div>}
+      </header>
+      <main id="top">
+        <section id="workspace" className="workspace-section">
+          <div className="workspace-intro">
+            <div><span className="section-label"><span className="purple-circle"/> YOUR TRANSLATION STUDIO</span><h2>Make every word count<span className="dot">.</span></h2><p>Write in any language. We’ll correct the English and translate the meaning to your destination language.</p></div>
+            <div className="workspace-toolbar">
+              <span className="auto-indicator" title="Translation starts automatically when you pause typing"><span className="auto-indicator-dot"/> Auto translate on</span>
+              <button className="toolbar-reset" onClick={reset}><RotateCcw size={15}/> Reset</button>
+            </div>
+          </div>
+          <div className="flow-description"><div><span className="flow-dot purple"/> 01 — ORIGINAL</div><ArrowRight size={16}/><div><span className="flow-dot blue"/> 02 — ENGLISH</div><ArrowRight size={16}/><div><span className="flow-dot green"/> 03 — LOCALIZED</div></div>
+          <div className="workspace-grid">
+            <article className="translation-card original-card">
+              <div className="card-top"><div className="card-title"><span className="step-icon step-violet"><FileText size={18}/></span><div><h3>Your words</h3><p>Type naturally · Any language</p></div></div><span className="step-counter">01 / 03</span></div>
+              <div className="control-group"><label>INPUT LANGUAGE</label><div className="auto-language-label"><Globe2 size={17}/><span>Automatic detection · Any language or mixed text</span><Check size={16}/></div></div>
+              <div className="editor-wrap"><textarea aria-label="Original text" maxLength={1800} placeholder="Type in any language, spelling or script…\n\nMixed English, Tamil, Hindi and other languages are welcome." value={input} onChange={e=>changeInput(e.target.value)}/></div>
+              <div className="card-bottom"><div className="input-actions"><button className={recording?'square-button recording':'square-button'} onClick={toggleMic} title={recording?'Stop recording':'Use microphone'} aria-label="Voice input"><Mic size={17}/></button><button className="square-button" onClick={async()=>{try{changeInput(await navigator.clipboard.readText());notify('Pasted from clipboard');}catch{notify('Use Ctrl+V to paste');}}} title="Paste" aria-label="Paste input"><Clipboard size={17}/></button><button className="square-button" onClick={()=>speak(input,source)} disabled={!input} title="Read aloud" aria-label="Speak original"><Volume2 size={17}/></button><button className="square-button" onClick={()=>changeInput('')} disabled={!input} title="Clear input" aria-label="Clear input"><X size={17}/></button></div><span className="char-count">{input.length} / 1,800</span></div>
+              <p className="card-note"><Lightbulb size={14}/> Write naturally, even with mixed languages or imperfect grammar. Meaning and languages are detected automatically.</p>
+            </article>
+            <article className="translation-card english-card">
+              <div className="card-top"><div className="card-title"><span className="step-icon step-blue"><WandSparkles size={18}/></span><div><h3>In English</h3><p>Meaning-first · Grammar-corrected</p></div></div><span className="step-counter">02 / 03</span></div>
+              <div className="control-group"><label>ENGLISH WRITING STYLE <span className="soft-tag">AI grammar correction</span></label><div className="tone-switch" role="group" aria-label="English format">{TONES.map(t=><button key={t.id} className={tone===t.id?'tone-option selected':'tone-option'} onClick={()=>changeTone(t.id)} title={t.detail}>{t.name}</button>)}</div></div>
+              <div className="output-box"><div className="output-content">{busy?<div className="loading-content"><LoaderCircle size={23} className="spin"/><p>Finding the right words…</p></div>:english?<p>{english}</p>:<div className="empty-state"><span className="empty-icon"><Languages size={26}/></span><strong>English translation</strong><small>We’ll understand your message and rewrite it in clear English.</small></div>}</div></div>
+              <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(english,'English translation')} disabled={!english} title="Copy English" aria-label="Copy English"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(english,'en')} disabled={!english} title="Listen to English" aria-label="Speak English"><Volume2 size={17}/></button></div><span className="word-count">{english?`${english.trim().split(/\s+/).length} words`:'Awaiting input'}</span></div>
+              {detected&&<div className="detected-strip"><Check size={14}/> Source: {detected}</div>}
+            </article>
+            <article className="translation-card target-card">
+              <div className="card-top"><div className="card-title"><span className="step-icon step-teal"><Earth size={19}/></span><div><h3>Around the world</h3><p>Translate for your destination</p></div></div><span className="step-counter">03 / 03</span></div>
+              <div className="country-language-grid"><div className="control-group"><label>COUNTRY</label><div className="select-wrap country-wrap"><span className="country-flag">{selectedCountry.flag}</span><select aria-label="Destination country" value={country} onChange={e=>changeCountry(e.target.value)}>{COUNTRIES.map(c=><option value={c.code} key={c.code}>{c.name}</option>)}</select><ChevronDown size={16}/></div></div><div className="control-group"><label>LANGUAGE</label><div className="select-wrap"><Languages size={16}/><select aria-label="Destination language" value={actualTarget} onChange={e=>changeLanguage(e.target.value)}>{selectedCountry.languages.map(l=><option value={l.code} key={l.code}>{l.name}</option>)}</select><ChevronDown size={16}/></div></div></div>
+              <div className="output-box"><div className="output-content">{busy?<div className="loading-content"><LoaderCircle size={23} className="spin"/><p>Localizing your message…</p></div>:localized?<p lang={shortLang(actualTarget)}>{localized}</p>:<div className="empty-state"><span className="empty-icon green-empty"><Globe2 size={26}/></span><strong>Local translation</strong><small>Choose a country and bring your words to life.</small></div>}</div></div>
+              <div className="card-bottom"><div className="input-actions"><button className="square-button" onClick={()=>copy(localized,'Localized translation')} disabled={!localized} title="Copy translation" aria-label="Copy localized"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(localized,actualTarget)} disabled={!localized} title="Listen" aria-label="Speak localized"><Volume2 size={17}/></button><button className="square-button" onClick={download} disabled={!localized} title="Download text" aria-label="Download"><Download size={17}/></button></div><span className="target-tag"><span/> {selectedLanguage.nativeName}</span></div>
+              {localized&&<div className="detected-strip green-strip"><ShieldCheck size={14}/> Auto-translated · Review important details</div>}
+            </article>
+          </div>
+          <div className="workspace-footer">
+            <div className="translation-status" role="status" aria-live="polite">{error?<span className="status-error"><WifiOff size={16}/> {error}</span>:busy?<span className="status-pending"><LoaderCircle size={16} className="spin"/> Translating automatically…</span>:localized?<span className="status-success"><Check size={16}/> Translation ready · {toneNote||'Direct translation'}</span>:canTranslate?<span className="status-pending">Waiting for typing to pause…</span>:<span className="status-pending">Type in any language. We’ll understand the meaning first.</span>}</div>
+          </div>
+        </section>
+      </main>
+      {toast&&<div className="toast" role="status"><Check size={17}/>{toast}<button onClick={()=>setToast('')} aria-label="Dismiss"><X size={16}/></button></div>}
+      {historyOpen&&<div className="modal-layer" onMouseDown={e=>{if(e.target===e.currentTarget)setHistoryOpen(false);}}><div className="side-panel" role="dialog" aria-modal="true" aria-label="Translation history"><div className="panel-head"><div><span className="section-label">SAVED IN YOUR BROWSER</span><h2>Recent translations</h2></div><button className="square-button" onClick={()=>setHistoryOpen(false)} aria-label="Close"><X size={21}/></button></div>{history.length===0?<div className="history-empty"><History size={32}/><h3>Nothing here yet</h3><p>Your successful translations will appear here on this device.</p></div>:<div className="history-list">{history.map(h=><button key={h.id} className="history-item" onClick={()=>restore(h)}><div className="history-item-top"><span><Clock3 size={13}/> {timeAgo(h.time)}</span><span>{h.targetName} <ArrowRight size={14}/></span></div><strong>{h.text}</strong><p>{h.output}</p></button>)}</div>}<div className="panel-foot"><span>Stored locally · up to 25 items</span><button disabled={!history.length} onClick={()=>{setHistory([]);notify('History cleared');}}><Trash2 size={15}/> Clear history</button></div></div></div>}
+      {showInfo&&<div className="modal-layer center-modal-layer" onMouseDown={e=>{if(e.target===e.currentTarget)setShowInfo(false);}}><div className="info-modal" role="dialog" aria-modal="true" aria-label="How translation works"><div className="panel-head"><div><span className="section-label">GOOD TO KNOW</span><h2>How native sync works</h2></div><button className="square-button" onClick={()=>setShowInfo(false)} aria-label="Close"><X size={21}/></button></div><div className="info-body"><div className="info-point"><span>01</span><div><h3>Write naturally in any language</h3><p>Type in any script or combine several languages in one sentence. The AI model infers languages and meaning automatically, including Romanized spoken languages.</p></div></div><div className="info-point"><span>02</span><div><h3>First: clear, grammatically correct English</h3><p>We interpret the intended meaning and rewrite it in natural English. Formal, casual and email writing styles can adjust the tone without inventing facts.</p></div></div><div className="info-point"><span>03</span><div><h3>Then: your selected destination language</h3><p>The chosen native language is translated from the corrected English, never straight from the raw input. Translation starts automatically after you pause typing.</p></div></div><div className="info-warning"><ShieldCheck size={20}/><div><strong>AI-assisted translation. Verify important text.</strong><p>The input is sent to GroqCloud Free AI for translation, not to Gemini or Vercel AI Gateway. Free plan rate limits apply; translation can be inaccurate. Avoid sensitive information. Recent translation history stays in your browser.</p></div></div></div><div className="info-bottom"><a href="https://console.groq.com/docs/overview" target="_blank" rel="noreferrer">About Groq Free AI <MoveUpRight size={15}/></a><button className="primary-button" onClick={()=>setShowInfo(false)}>Got it <Check size={16}/></button></div></div></div>}
     </div>
   );
 }

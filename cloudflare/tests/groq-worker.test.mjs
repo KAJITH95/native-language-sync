@@ -237,3 +237,44 @@ test('Email mode to English returns identical structured text in boxes 2 and 3',
    assert.match(r.englishOutput,/Subject: Status Update/);
  }finally{globalThis.fetch=old}
 });
+
+
+test('Romanized Tamil quality instructions preserve completed, affirmative build actions', async () => {
+ const sample='Intha environment create panni 30 days ku mela aagirukathu naala auto-purge aagiruku. Naan innoru build trigger pannirukaen. once complete aanthum provide pannuraen.';
+ const modelReply={
+  englishOutput:"The environment has been automatically purged because it was created more than 30 days ago. I've triggered another build and will share it once it's complete.",
+  targetOutput:"சுற்றுச்சூழல் உருவாக்கப்பட்டு 30 நாட்களுக்கு மேல் ஆனதால் தானாக நீக்கப்பட்டுள்ளது. நான் மீண்டும் ஒரு build தொடங்கியுள்ளேன். அது முடிந்ததும் பகிர்கிறேன்.",
+  detectedLanguage:'Mixed English + Romanized Tamil',toneNote:'Professional'
+ };
+ const prev=globalThis.fetch;
+ let body;
+ globalThis.fetch=async (_url,opts)=>{
+   body=JSON.parse(opts.body);
+   return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(modelReply)}}]}),{status:200});
+ };
+ try {
+  const answer=await runTranslation({text:sample,target:'ta',tone:'standard'},env.GROQ_API_KEY);
+  assert.equal(answer.englishOutput,modelReply.englishOutput);
+  assert.doesNotMatch(answer.englishOutput,/will not trigger/i);
+  assert.match(body.messages[0].content,/NEVER reverse a claim's polarity/);
+  assert.match(body.messages[0].content,/pannirukaen\/pannirukken/);
+  assert.match(body.messages[0].content,/auto-purge aagiruku/);
+  assert.match(body.messages[0].content,/Final silent quality check/);
+  assert.match(body.messages[1].content,/Naan innoru build trigger pannirukaen/);
+  assert.match(body.messages[1].content,/BEGIN SOURCE/);
+ } finally {globalThis.fetch=prev;}
+});
+
+test('Positive and negative romanized Tamil examples are explicitly contrasted in the model instructions', async () => {
+ const prev=globalThis.fetch; let prompt='';
+ globalThis.fetch=async (_url,opts)=>{
+  prompt=JSON.parse(opts.body).messages[0].content;
+  return result();
+ };
+ try {
+  await runTranslation({text:'naan innoru build trigger pannala',target:'fr',tone:'formal'},env.GROQ_API_KEY);
+  assert.match(prompt,/I haven't triggered another build/);
+  assert.match(prompt,/I've triggered another build/);
+  assert.match(prompt,/do not turn a factual update into a hypothetical rule/i);
+ } finally {globalThis.fetch=prev;}
+});

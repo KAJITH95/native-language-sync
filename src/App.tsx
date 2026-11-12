@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown,
   Clipboard, Clock3, Copy, Download, FileText, Globe2, History,
-  Languages, Lightbulb, LoaderCircle, LogOut, Menu, Mic, Moon,
+  Languages, LoaderCircle, LogOut, Menu, Mic, Moon,
   MoveUpRight, RotateCcw, Search, ShieldCheck, Sun, Trash2,
   Volume2, WandSparkles, WifiOff, X
 } from 'lucide-react';
@@ -231,7 +231,6 @@ export default function App() {
               <div className="control-group"><label>INPUT LANGUAGE</label><div className="auto-language-label"><Globe2 size={17}/><span>Automatic detection · Any language or mixed text</span><Check size={16}/></div></div>
               <div className="editor-wrap"><textarea aria-label="Original text" maxLength={1800} placeholder="Type in any language, spelling or script…\n\nMixed English, Tamil, Hindi and other languages are welcome." value={input} onChange={e=>changeInput(e.target.value)}/></div>
               <div className="card-bottom"><div className="input-actions"><button className={recording?'square-button recording':'square-button'} onClick={toggleMic} title={recording?'Stop recording':'Use microphone'} aria-label="Voice input"><Mic size={17}/></button><button className="square-button" onClick={async()=>{try{changeInput(await navigator.clipboard.readText());notify('Pasted from clipboard');}catch{notify('Use Ctrl+V to paste');}}} title="Paste" aria-label="Paste input"><Clipboard size={17}/></button><button className="square-button" onClick={()=>copy(input,"Original text")} disabled={!input} title="Copy original text" aria-label="Copy original text"><Copy size={17}/></button><button className="square-button" onClick={()=>speak(input,source)} disabled={!input} title="Read aloud" aria-label="Speak original"><Volume2 size={17}/></button><button className="square-button" onClick={()=>changeInput('')} disabled={!input} title="Clear input" aria-label="Clear input"><X size={17}/></button></div><span className="char-count">{input.length} / 1,800</span></div>
-              <p className="card-note"><Lightbulb size={14}/> Write naturally, even with mixed languages or imperfect grammar. Meaning and languages are detected automatically.</p>
             </article>
             <article className="translation-card english-card">
               <div className="card-top"><div className="card-title"><span className="step-icon step-blue"><WandSparkles size={18}/></span><div><h3>In English</h3><p>Meaning-first · Grammar-corrected</p></div></div><span className="step-counter">02 / 03</span></div>

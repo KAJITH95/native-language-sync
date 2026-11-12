@@ -19,7 +19,7 @@ type APIResult = {
   detectedCode: string; provider: string; toneNote: string; usageNote: string; targetWarning?: string;
 };
 const TONES: {id:EnglishTone;name:string;detail:string}[] = [
-  {id:'standard',name:'Standard',detail:'Meaning-first English with corrected grammar'},
+  {id:'standard',name:'Standard',detail:'Respectful, natural, professionally refined English'},
   {id:'formal',name:'Formal',detail:'Polished professional English'},
   {id:'casual',name:'Casual',detail:'Natural conversational English'},
   {id:'email',name:'Email',detail:'Complete email draft: Subject, greeting, body and sign-off'},

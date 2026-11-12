@@ -278,3 +278,34 @@ test('Positive and negative romanized Tamil examples are explicitly contrasted i
   assert.match(prompt,/do not turn a factual update into a hypothetical rule/i);
  } finally {globalThis.fetch=prev;}
 });
+
+test('Standard writing mode requests respectful refinement without invented facts',async()=>{
+ const prev=globalThis.fetch;let body;
+ globalThis.fetch=async (_url,options)=>{
+  body=JSON.parse(options.body);return result();
+ };
+ try {
+  await runTranslation({text:'Hi, intha changes ellam apply pannitingala? please confirm pannunga',target:'ta',tone:'standard'},env.GROQ_API_KEY);
+  const prompt=body.messages[0].content;
+  assert.match(prompt,/skilled human editor/);
+  assert.match(prompt,/everyday professional and respectful/);
+  assert.match(prompt,/does NOT imply "unused\/inactive/);
+  assert.match(prompt,/Could you please confirm whether all these changes/);
+  assert.match(prompt,/Naan deploy panniten, aana login/);
+  assert.match(prompt,/Never add promises/);
+ }finally{globalThis.fetch=prev}
+});
+
+test('Formal and casual styles remain polite and grounded',async()=>{
+ const prev=globalThis.fetch;const prompts=[];
+ globalThis.fetch=async (_url,options)=>{
+  prompts.push(JSON.parse(options.body).messages[0].content);
+  return result();
+ };
+ try {
+  for(const tone of ['formal','casual']) await runTranslation({text:'Respectful rewrite test '+tone,target:'fr',tone},env.GROQ_API_KEY);
+  assert.match(prompts[0],/business English suitable for clients/);
+  assert.match(prompts[1],/friendly, clear English that is still polite/);
+  for(const p of prompts) assert.match(p,/does NOT imply "unused\/inactive/);
+ }finally{globalThis.fetch=prev}
+});

@@ -50,3 +50,26 @@ test('floral illustration is local, subtle, and mobile/reduced-motion aware',()=
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.match(css,/:root\[data-theme='dark'\] \.destination-atlas/);
 });
+
+
+test('country zoom has real outlines, animates on selection, and removes decorative map flowers',()=>{
+  const outlines=get('src/data/countryOutlines.ts');
+  const entries=[...outlines.matchAll(/^  ([A-Z]{2}): \{ path:/gm)].map(match=>match[1]);
+  assert.equal(entries.length,40);
+  assert.equal(new Set(entries).size,40);
+  for(const code of ['IN','JP','KR','US','FR','GB','CA','BR']) {
+    const match=outlines.match(new RegExp('^  '+code+': \\{ path: "([^"]+)", zoom: ([\\d.]+)', 'm'));
+    assert.ok(match && match[1].length>200,code+' has a visible country outline');
+    assert.ok(Number(match[2])>1.1,code+' has a meaningful zoom level');
+  }
+  assert.match(outlines,/SG: \{ path: "", zoom:/);
+  assert.match(atlas,/COUNTRY_OUTLINES\[country\.code\]/);
+  assert.match(atlas,/className="atlas-camera"/);
+  assert.match(atlas,/className="atlas-country-outline"/);
+  assert.match(atlas,/setFocused\(true\)/);
+  assert.match(atlas,/aria-pressed=\{focused\}/);
+  assert.match(css,/\.atlas-camera[\s\S]*transition:transform/);
+  assert.doesNotMatch(atlas,/className="atlas-flower"/);
+  assert.doesNotMatch(atlas,/Blooming across borders/);
+  assert.doesNotMatch(atlas,/atlas-foot-flower/);
+});

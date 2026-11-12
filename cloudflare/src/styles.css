@@ -500,3 +500,41 @@ body::before {
   .translation-status { line-height: 1.25; }
 }
 /* Under 680px tall or at <=850px wide, keep natural document scrolling. */
+
+/* v4.8: Real selected-country camera zoom and a clean, flower-free map. */
+.atlas-heading-tools { display:flex; align-items:center; gap:8px; min-width:0; max-width:72%; }
+.atlas-heading-tools .destination-atlas-location { min-width:0; max-width:100%; }
+.atlas-zoom-toggle {
+  flex-shrink:0; padding:5px 8px; border-radius:8px;
+  border:1px solid #d9d5e8; background:#ffffffd9;
+  color:#65539a; font-size:9px; font-weight:800;
+  white-space:nowrap; cursor:pointer;
+}
+.atlas-zoom-toggle:hover { border-color:#9c8acb; color:#4e368c; }
+.atlas-zoom-toggle:focus-visible { outline:2px solid #7861bc; outline-offset:2px; }
+.destination-atlas-svg { overflow:hidden; }
+.atlas-camera {
+  transform-origin:0 0;
+  transform-box:view-box;
+  transition:transform .68s cubic-bezier(.23, .76, .27, 1);
+}
+.atlas-country-outline { filter:drop-shadow(0 0 2px #7669ac55); }
+.atlas-location-pin { transform-origin:0 0; transition:transform .68s cubic-bezier(.23,.76,.27,1); }
+.atlas-small-country { pointer-events:none; }
+:root[data-theme='dark'] .atlas-zoom-toggle { background:#353749; color:#d6c8fd; border-color:#57546f; }
+@media(min-width:851px) and (min-height:680px) {
+  .destination-atlas-svg { height:clamp(112px, 16.5vh, 145px); }
+  .destination-atlas-heading { flex-direction:row; align-items:center; }
+}
+@media(max-width:1180px) {
+  .destination-atlas-heading { flex-direction:row; align-items:center; }
+  .atlas-heading-tools { max-width:75%; }
+  .destination-atlas-location { white-space:nowrap; text-align:right; }
+}
+@media(max-width:580px) {
+  .atlas-heading-tools { gap:5px; max-width:73%; }
+  .atlas-zoom-toggle { padding:4px 6px; font-size:8px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .atlas-camera,.atlas-location-pin { transition:none; }
+}

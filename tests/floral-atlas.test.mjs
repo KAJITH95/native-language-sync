@@ -74,3 +74,18 @@ test('country zoom has real outlines, animates on selection, and removes decorat
   assert.doesNotMatch(atlas,/Blooming across borders/);
   assert.doesNotMatch(atlas,/atlas-foot-flower/);
 });
+
+
+test('Indonesia archipelago fits the focused map viewport without cropping Sumatra or Papua',()=>{
+  const outlines=get('src/data/countryOutlines.ts');
+  const match=outlines.match(/^  ID: \\{ path: "([^"]+)", zoom: ([\\d.]+) \\},$/m);
+  assert.ok(match,'Indonesia has a geographic outline and camera zoom');
+  const zoom=Number(match[2]);
+  const vertices=[...match[1].matchAll(/[ML](-?[\\d.]+) (-?[\\d.]+)/g)].map(m=>[Number(m[1]),Number(m[2])]);
+  assert.ok(vertices.length>100,'multiple Indonesian island outlines are preserved');
+  const cx=(117+180)*(800/360),cy=(85+2.2)*(350/145);
+  for(const [x,y] of vertices){
+    const screenX=400+(x-cx)*zoom,screenY=175+(y-cy)*zoom;
+    assert.ok(screenX>=40&&screenX<=760 && screenY>=20&&screenY<=330,'Indonesia islands must fit the viewport');
+  }
+});

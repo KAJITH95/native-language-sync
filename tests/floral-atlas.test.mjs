@@ -66,8 +66,9 @@ test('country zoom has real outlines, animates on selection, and removes decorat
   assert.match(atlas,/COUNTRY_OUTLINES\[country\.code\]/);
   assert.match(atlas,/className="atlas-camera"/);
   assert.match(atlas,/className="atlas-country-outline"/);
-  assert.match(atlas,/setFocused\(true\)/);
-  assert.match(atlas,/aria-pressed=\{focused\}/);
+  assert.match(atlas,/const scale = outline\?\.zoom \?\? 3\.4/);
+  assert.match(atlas,/const pinPosition = 'translate\(400px, 175px\)'/);
+  assert.doesNotMatch(atlas,/setFocused|aria-pressed|atlas-zoom-toggle|World view|Zoom in/);
   assert.match(css,/\.atlas-camera[\s\S]*transition:transform/);
   assert.doesNotMatch(atlas,/className="atlas-flower"/);
   assert.doesNotMatch(atlas,/Blooming across borders/);

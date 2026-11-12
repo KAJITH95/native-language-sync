@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { COUNTRY_CENTERS, WORLD_LAND_PATH, projectCountry } from '../data/worldAtlas';
 import { COUNTRY_OUTLINES } from '../data/countryOutlines';
 import type { CountryInfo, LanguageInfo } from '../types';
@@ -29,19 +28,14 @@ export function FloralGlobeMark() {
  * local and has no decorative flowers or external maps/tiles/API requests.
  */
 export function FloralAtlas({ country, language }: { country: CountryInfo; language: LanguageInfo }) {
-  const [focused, setFocused] = useState(true);
-  useEffect(() => { setFocused(true); }, [country.code]);
-
   const center = projectCountry(country.code);
   const outline = COUNTRY_OUTLINES[country.code];
   const mapped = Object.prototype.hasOwnProperty.call(COUNTRY_CENTERS, country.code);
-  const scale = focused ? (outline?.zoom ?? 3.4) : 1;
+  const scale = outline?.zoom ?? 3.4;
   const offsetX = 400 - center.x * scale;
   const offsetY = 175 - center.y * scale;
   const camera = 'translate(' + offsetX.toFixed(2) + 'px, ' + offsetY.toFixed(2) + 'px) scale(' + scale.toFixed(2) + ')';
-  const pinX = focused ? 400 : center.x;
-  const pinY = focused ? 175 : center.y;
-  const pinPosition = 'translate(' + pinX.toFixed(1) + 'px, ' + pinY.toFixed(1) + 'px)';
+  const pinPosition = 'translate(400px, 175px)';
 
   return (
     <div className="destination-atlas" aria-label={'Destination world map: ' + country.name + ', ' + language.name}>
@@ -49,10 +43,9 @@ export function FloralAtlas({ country, language }: { country: CountryInfo; langu
         <span className="destination-atlas-eyebrow"><span className="atlas-orbit-dot"/> DESTINATION MAP</span>
         <span className="atlas-heading-tools">
           <span className="destination-atlas-location">{country.flag} {country.name} <span aria-hidden="true">·</span> {language.name}</span>
-          <button type="button" className="atlas-zoom-toggle" aria-pressed={focused} title={focused ? 'Show full world map' : 'Zoom to selected country'} onClick={() => setFocused(v => !v)}>{focused ? 'World view' : 'Zoom in'}</button>
         </span>
       </div>
-      <svg className="destination-atlas-svg" viewBox="0 0 800 350" role="img" aria-label={country.name + ' highlighted ' + (focused ? 'in a zoomed region' : 'on the world map')}>
+      <svg className="destination-atlas-svg" viewBox="0 0 800 350" role="img" aria-label={country.name + ' highlighted in a zoomed region'}>
         <defs>
           <linearGradient id="atlasSea" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#edf4f1"/>
